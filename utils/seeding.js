@@ -54,9 +54,6 @@ const insertDataIntoWeatherForecast = async (client) => {
   await client.query(
     `INSERT INTO weather_forecast (date, location_id, min_temp, max_temp, condition) VALUES ('2025-01-26', 3 , 12, 22, 'Cloudy')`
   );
-  // for location_id two
-
-  // now add location_id also and write query
 };
 
 const insertDataIntoAirQuality = async (client) => {

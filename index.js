@@ -9,20 +9,20 @@ const getWeatherForecast = require("./controllers/get-weather-forecase");
 
 const checkForLocation = (location, res) => {
   if (!location) {
-    res.writeHead(400);
+    res.writeHead(400, { "Content-Type": "application/json" });
     res.write(JSON.stringify({ error: "Location is required" }));
     res.end();
     return;
   }
 };
 
-const getLocationIdFromLocationName = async (location) => {
+const getLocationIdFromLocationName = async (location, res) => {
   const getLocation = await query(`SELECT * FROM location WHERE name = $1`, [
     location,
   ]);
 
   if (getLocation.rowCount === 0) {
-    res.writeHead(404);
+    res.writeHead(400, { "Content-Type": "application/json" });
     res.write(JSON.stringify({ error: "Location not found" }));
     res.end();
     return;
@@ -41,13 +41,13 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && finalRequest == "/weather/realtime") {
     checkForLocation(location, res);
-    const locationId = await getLocationIdFromLocationName(location);
+    const locationId = await getLocationIdFromLocationName(location, res);
     await getWeatherRealTime(req, res, query, locationId);
   }
   // yo get weather/airquality
   else if (req.method === "GET" && finalRequest === "/weather/airquality") {
     checkForLocation(location, res);
-    const locationId = await getLocationIdFromLocationName(location);
+    const locationId = await getLocationIdFromLocationName(location, res);
 
     console.log("locationId: " + locationId);
 
@@ -57,18 +57,18 @@ const server = http.createServer(async (req, res) => {
     );
 
     if (getAirQualityData.rowCount === 0) {
-      res.writeHead(404);
+      res.writeHead(400, { "Content-Type": "application/json" });
       res.write(JSON.stringify({ error: "Air quality data not found" }));
       res.end();
       return;
     }
 
-    res.writeHead(200);
+    res.writeHead(200, { "Content-Type": "application/json" });
     res.write(JSON.stringify(getAirQualityData.rows));
     res.end();
   } else if (req.method == "GET" && finalRequest === "/weather/forecast") {
     await checkForLocation(location, res);
-    const locationId = await getLocationIdFromLocationName(location);
+    const locationId = await getLocationIdFromLocationName(location, res);
 
     // get today's date and upto 3 days
     const today = new Date();
@@ -86,13 +86,13 @@ const server = http.createServer(async (req, res) => {
     console.log("get WeatherForecastData not found", getWeatherForecastData);
 
     if (getWeatherForecastData.rowCount === 0) {
-      res.writeHead(404);
+      res.writeHead(404, { "Content-Type": "application/json" });
       res.write(JSON.stringify({ error: "Weather forecast data not found" }));
       res.end();
       return;
     }
 
-    res.writeHead(200);
+    res.writeHead(200, { "Content-Type": "application/json" });
     res.write(JSON.stringify(getWeatherForecastData.rows));
     res.end();
   } else if (req.method === "GET" && finalRequest === "/weather/location") {
@@ -105,6 +105,17 @@ const server = http.createServer(async (req, res) => {
       const { location_id, date, min_temp, max_temp, condition } =
         weatherForecast;
 
+      if (!location_id || !date || !min_temp || !max_temp || !condition) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.write(
+          JSON.stringify({
+            error: "All fields are required in weather_forecast",
+          })
+        );
+        res.end();
+        return;
+      }
+
       await query(
         `INSERT INTO weather_forecast (location_id, date, min_temp, max_temp, condition) VALUES ($1, $2, $3, $4, $5)`,
         [location_id, date, min_temp, max_temp, condition]
@@ -115,6 +126,23 @@ const server = http.createServer(async (req, res) => {
       const weatherRealTime = JSON.parse(req.body).weather_realtime;
       const { location_id, temperature, condition, humidity, wind_speed } =
         weatherRealTime;
+      // all fields are required
+      if (
+        !location_id ||
+        !temperature ||
+        !condition ||
+        !humidity ||
+        !wind_speed
+      ) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.write(
+          JSON.stringify({
+            error: "All fields are required in weather_realtime",
+          })
+        );
+        res.end();
+        return;
+      }
       await query(
         `INSERT INTO weather_realtime (location_id, temperature, condition, humidity, wind_speed) VALUES ($1, $2, $3, $4, $5)`,
         [location_id, temperature, condition, humidity, wind_speed]
@@ -124,7 +152,16 @@ const server = http.createServer(async (req, res) => {
     {
       const airQuality = JSON.parse(req.body).air_quality;
       const { location_id, aqi, description } = airQuality;
-      // insert into air_quality table
+      if (!location_id || !api || !description) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.write(
+          JSON.stringify({
+            error: "All fields are required in weather_realtime",
+          })
+        );
+        res.end();
+        return;
+      }
       await query(
         `INSERT INTO air_quality (location_id, aqi, description) VALUES ($1, $2, $3)`,
         [location_id, aqi, description]
