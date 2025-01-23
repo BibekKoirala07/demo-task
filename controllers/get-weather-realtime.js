@@ -1,18 +1,4 @@
-const getWeatherRealTime = async (req, res, query, location) => {
-  const locationData = await query(`SELECT * FROM location WHERE name = $1`, [
-    location,
-  ]);
-
-  if (locationData.rows.length === 0) {
-    console.log("Location not found in database");
-    res.writeHead(404);
-    res.write(JSON.stringify({ error: "Location not found" }));
-    res.end();
-    return;
-  }
-
-  const locationId = locationData.rows[0].id;
-
+const getWeatherRealTime = async (req, res, query, locationId) => {
   console.log("locationId: " + locationId);
 
   const result = await query(

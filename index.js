@@ -16,6 +16,21 @@ const checkForLocation = (location, res) => {
   }
 };
 
+const getLocationIdFromLocationName = async (location) => {
+  const getLocation = await query(`SELECT * FROM location WHERE name = $1`, [
+    location,
+  ]);
+
+  if (getLocation.rowCount === 0) {
+    res.writeHead(404);
+    res.write(JSON.stringify({ error: "Location not found" }));
+    res.end();
+    return;
+  }
+
+  return getLocation.rows[0].id;
+};
+
 const server = http.createServer(async (req, res) => {
   console.log("req", req.method, req.url);
   const [finalRequest, queryParameters] = req.url.split("?");
@@ -26,34 +41,25 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && finalRequest == "/weather/realtime") {
     checkForLocation(location, res);
-    await getWeatherRealTime(req, res, query, location);
+    const locationId = await getLocationIdFromLocationName(location);
+    await getWeatherRealTime(req, res, query, locationId);
   } else if (req.method === "GET" && finalRequest === "/weather/forecastes") {
     checkForLocation(location, res);
     console.log("it was here");
-    await getWeatherForecast(req, res, query, location);
+    const locationId = await getLocationIdFromLocationName(location);
+    await getWeatherForecast(req, res, query, locationId);
   }
   // yo get weather/aitquality
   else if (req.method === "GET" && finalRequest === "/weather/airquality") {
     checkForLocation(location, res);
 
-    const getLocation = await query(`SELECT * FROM location WHERE name = $1`, [
-      location,
-    ]);
-
-    if (getLocation.rowCount === 0) {
-      res.writeHead(404);
-      res.write(JSON.stringify({ error: "Location not found" }));
-      res.end();
-      return;
-    }
-
-    const locationId = getLocation.rows[0];
+    const locationId = await getLocationIdFromLocationName(location);
 
     console.log("locationId: " + locationId);
 
     const getAirQualityData = await query(
       `SELECT * FROM air_quality WHERE location_id = $1`,
-      [locationId.id]
+      [locationId]
     );
 
     if (getAirQualityData.rowCount === 0) {
@@ -68,21 +74,7 @@ const server = http.createServer(async (req, res) => {
     res.end();
   } else if (req.method == "GET" && finalRequest === "/weather/forecast") {
     await checkForLocation(location, res);
-
-    const getLocation = await query(`SELECT * FROM location WHERE name = $1`, [
-      location,
-    ]);
-
-    if (getLocation.rowCount === 0) {
-      res.writeHead(404);
-      res.write(JSON.stringify({ error: "Location not found" }));
-      res.end();
-      return;
-    }
-
-    const locationId = getLocation.rows[0].id;
-
-    console.log("locationId: " + locationId);
+    const locationId = await getLocationIdFromLocationName(location);
 
     const currentDate = new Date();
     const date = currentDate.toISOString().split("T")[0];
@@ -102,13 +94,11 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200);
     res.write(JSON.stringify(getWeatherForecastData.rows));
-  }
-  // you get weather locations
-  else if (req.method === "GET" && finalRequest === "/weather/location") {
+  } else if (req.method === "GET" && finalRequest === "/weather/location") {
     await getWeatherLocation(req, res, query);
   }
   // you chai post weather location
-  else if (req.method === "POST" && req.url === "/weather/location") {
+  else if (req.method === "POST" && finalRequest === "/weather/location") {
     {
       const weatherForecast = JSON.parse(req.body).weather_forecast;
       const { location_id, date, min_temp, max_temp, condition } =
@@ -124,7 +114,6 @@ const server = http.createServer(async (req, res) => {
       const weatherRealTime = JSON.parse(req.body).weather_realtime;
       const { location_id, temperature, condition, humidity, wind_speed } =
         weatherRealTime;
-      // insert those values in weather_realtime
       await query(
         `INSERT INTO weather_realtime (location_id, temperature, condition, humidity, wind_speed) VALUES ($1, $2, $3, $4, $5)`,
         [location_id, temperature, condition, humidity, wind_speed]
@@ -140,6 +129,10 @@ const server = http.createServer(async (req, res) => {
         [location_id, aqi, description]
       );
     }
+    // send the response that it is successfully added
+    res.writeHead(201);
+    res.write(JSON.stringify({ message: "Weather data added successfully" }));
+    res.end();
   }
 });
 
