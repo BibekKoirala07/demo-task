@@ -126,7 +126,7 @@ const server = http.createServer(async (req, res) => {
       const weatherRealTime = JSON.parse(req.body).weather_realtime;
       const { location_id, temperature, condition, humidity, wind_speed } =
         weatherRealTime;
-      // all fields are required
+
       if (
         !location_id ||
         !temperature ||
@@ -170,6 +170,23 @@ const server = http.createServer(async (req, res) => {
     // send the response that it is successfully added
     res.writeHead(201, { "Content-Type": "application/json" });
     res.write(JSON.stringify({ message: "Weather data added successfully" }));
+    res.end();
+  }
+  // for delete route with params
+  else if (req.method === "DELETE" && finalRequest === "/weather/:id") {
+    const locationId = parseInt(req.params.id);
+    const locationExists = await query(`SELECT * FROM location WHERE id = $1`, [
+      locationId,
+    ]);
+    if (locationExists.rowCount === 0) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.write(JSON.stringify({ error: "Location not found" }));
+      res.end();
+      return;
+    }
+    await query(`DELETE FROM location WHERE id = $1`, [locationId]);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.write(JSON.stringify({ message: "Location deleted successfully" }));
     res.end();
   }
 });

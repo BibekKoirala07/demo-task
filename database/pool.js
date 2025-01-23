@@ -41,7 +41,6 @@ description TEXT NOT NULl
 `;
 
 const { Pool } = require("pg");
-const postgres = require("postgres");
 const {
   insertDataIntoLocation,
   insertDataIntoWeatherRealTime,
