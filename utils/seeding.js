@@ -1,12 +1,12 @@
 const insertDataIntoLocation = async (client) => {
   await client.query(
-    `INSERT INTO location (name, latitude, longitude) VALUES ('New York', 40.7128, -74.0060)`
+    `INSERT INTO location (name, latitude, longitude) VALUES ('Kathmandu', 40.7128, -74.0060)`
   );
   await client.query(
-    `INSERT INTO location (name, latitude, longitude) VALUES ('London', 51.5074, -0.1278)`
+    `INSERT INTO location (name, latitude, longitude) VALUES ('Pokhara', 51.5074, -0.1278)`
   );
   await client.query(
-    `INSERT INTO location (name, latitude, longitude) VALUES ('Tokyo', 35.6895, 139.6917)`
+    `INSERT INTO location (name, latitude, longitude) VALUES ('Lalitpur', 35.6895, 139.6917)`
   );
 };
 

@@ -43,16 +43,10 @@ const server = http.createServer(async (req, res) => {
     checkForLocation(location, res);
     const locationId = await getLocationIdFromLocationName(location);
     await getWeatherRealTime(req, res, query, locationId);
-  } else if (req.method === "GET" && finalRequest === "/weather/forecastes") {
-    checkForLocation(location, res);
-    console.log("it was here");
-    const locationId = await getLocationIdFromLocationName(location);
-    await getWeatherForecast(req, res, query, locationId);
   }
-  // yo get weather/aitquality
+  // yo get weather/airquality
   else if (req.method === "GET" && finalRequest === "/weather/airquality") {
     checkForLocation(location, res);
-
     const locationId = await getLocationIdFromLocationName(location);
 
     console.log("locationId: " + locationId);
@@ -76,13 +70,19 @@ const server = http.createServer(async (req, res) => {
     await checkForLocation(location, res);
     const locationId = await getLocationIdFromLocationName(location);
 
-    const currentDate = new Date();
-    const date = currentDate.toISOString().split("T")[0];
+    // get today's date and upto 3 days
+    const today = new Date();
+    const date = today.toISOString().split("T")[0];
+    const threeDaysFromToday = new Date(today);
+    threeDaysFromToday.setDate(today.getDate() + 3);
+    const dateThreeDaysFromToday = threeDaysFromToday
+      .toISOString()
+      .split("T")[0];
+    // write a query
     const getWeatherForecastData = await query(
-      `SELECT * FROM weather_forecast WHERE location_id = $1 AND date = $2`,
-      [locationId, date]
+      `SELECT * FROM weather_forecast WHERE location_id = $1 AND date BETWEEN $2 AND $3`,
+      [locationId, date, dateThreeDaysFromToday]
     );
-
     console.log("get WeatherForecastData not found", getWeatherForecastData);
 
     if (getWeatherForecastData.rowCount === 0) {
@@ -94,11 +94,12 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200);
     res.write(JSON.stringify(getWeatherForecastData.rows));
+    res.end();
   } else if (req.method === "GET" && finalRequest === "/weather/location") {
     await getWeatherLocation(req, res, query);
   }
-  // you chai post weather location
-  else if (req.method === "POST" && finalRequest === "/weather/location") {
+  // you chai post weather generate
+  else if (req.method === "POST" && finalRequest === "/weather/generate") {
     {
       const weatherForecast = JSON.parse(req.body).weather_forecast;
       const { location_id, date, min_temp, max_temp, condition } =
@@ -130,7 +131,7 @@ const server = http.createServer(async (req, res) => {
       );
     }
     // send the response that it is successfully added
-    res.writeHead(201);
+    res.writeHead(201, { "Content-Type": "application/json" });
     res.write(JSON.stringify({ message: "Weather data added successfully" }));
     res.end();
   }
