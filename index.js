@@ -171,9 +171,8 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(201, { "Content-Type": "application/json" });
     res.write(JSON.stringify({ message: "Weather data added successfully" }));
     res.end();
-  }
-  // for delete route with params
-  else if (req.method === "DELETE" && finalRequest === "/weather/:id") {
+  } else if (req.method === "DELETE" && finalRequest === "/weather") {
+    console.log("here");
     const locationId = parseInt(req.params.id);
     const locationExists = await query(`SELECT * FROM location WHERE id = $1`, [
       locationId,
